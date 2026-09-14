@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThesisHub - Student Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-image:
+                linear-gradient(rgba(0, 30, 60, 0.65), rgba(0, 0, 0, 0.75)),
+                url("{{ url_for('static', filename='background 6.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .navbar-custom {
+            background-color: rgba(13, 59, 102, 0.9) !important;
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .page-title { color: #ffffff; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); }
+        .dept-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(5px);
+            border: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+        }
+        .dept-card:hover {
+            transform: translateY(-8px);
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3) !important;
+        }
+        .search-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-radius: 16px;
+        }
+        .thesis-item-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        .thesis-item-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2) !important;
+        }
+        .modal-content {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+        }
+        .password-hint {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 4px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm py-2">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-5" href="{{ url_for('student_main') }}">ThesisHub Student Portal</a>
+            <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0">
+                <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#studentPasswordModal">Change Password</button>
+                <a href="{{ url_for('student_logout') }}" class="btn btn-danger btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4 py-md-5">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show mb-4 shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Search Bar Section -->
+        <div class="row justify-content-center mb-5">
+            <div class="col-12 col-md-10 col-lg-8">
+                <div class="card p-3 p-md-4 shadow-lg border-0 search-card">
+                    <form action="{{ url_for('student_main') }}" method="GET">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3 d-none d-sm-flex">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" name="q" value="{{ search_query if search_query else '' }}" class="form-control border-start-0 py-2 shadow-none rounded-start-pill rounded-start-sm-0" placeholder="Search thesis title, author...">
+                            <button type="submit" class="btn btn-primary px-4 fw-bold rounded-end-pill">Search</button>
+                            {% if search_query %}
+                                <a href="{{ url_for('student_main') }}" class="btn btn-outline-secondary rounded-pill ms-2">Clear</a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Results Section -->
+        {% if search_query %}
+            <div class="mb-5">
+                <h3 class="page-title fw-bold mb-3 fs-4">
+                    Search Results for: <span class="text-warning">"{{ search_query }}"</span>
+                </h3>
+                {% if theses %}
+                    <div class="row g-3">
+                        {% for thesis in theses %}
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <div class="card h-100 border-0 shadow-sm thesis-item-card p-3">
+                                    <div class="card-body d-flex flex-column p-2">
+                                        <span class="badge bg-primary w-auto mb-2 align-self-start">{{ thesis.category or 'General' }}</span>
+                                        <h5 class="fw-bold text-dark card-title mb-2 fs-5">{{ thesis.title }}</h5>
+                                        <p class="text-muted small mb-1"><strong>Author:</strong> {{ thesis.author or 'N/A' }}</p>
+                                        <p class="text-muted small mb-3"><strong>Year:</strong> {{ thesis.pub_year or 'N/A' }}</p>
+                                        <div class="mt-auto d-flex gap-2">
+                                            <a href="{{ url_for('thesis_abstract', thesis_id=thesis.id) }}" class="btn btn-outline-info btn-sm flex-fill fw-bold">Abstract</a>
+                                            <a href="{{ url_for('student_read_full_thesis', thesis_id=thesis.id) }}" class="btn btn-primary btn-sm flex-fill fw-bold">Read Full</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-light text-center shadow-sm rounded-4 py-4">
+                        <i class="fas fa-folder-open fa-2x text-muted mb-2"></i>
+                        <p class="mb-0 fw-semibold text-secondary">No theses found matching your search keyword.</p>
+                    </div>
+                {% endif %}
+            </div>
+            <hr class="text-white opacity-25 my-5">
+        {% endif %}
+
+        <h2 class="text-center fw-bold mb-4 page-title fs-3 fs-md-2">Select Your Engineering Department</h2>
+        <div class="row g-3 g-md-4 mt-2">
+            <div class="col-6 col-md-3">
+                <a href="{{ url_for('student_major_display', dept='Civil') }}" class="text-decoration-none">
+                    <div class="card card-body text-center shadow border-0 py-4 py-md-5 rounded-4 dept-card">
+                        <h4 class="fw-bold text-primary fs-3">Civil</h4>
+                        <p class="text-muted mb-0 fw-semibold small">Civil Engineering</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="{{ url_for('student_major_display', dept='EC') }}" class="text-decoration-none">
+                    <div class="card card-body text-center shadow border-0 py-4 py-md-5 rounded-4 dept-card">
+                        <h4 class="fw-bold text-success fs-3">EC</h4>
+                        <p class="text-muted mb-0 fw-semibold small">Electronics Engineering</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="{{ url_for('student_major_display', dept='EP') }}" class="text-decoration-none">
+                    <div class="card card-body text-center shadow border-0 py-4 py-md-5 rounded-4 dept-card">
+                        <h4 class="fw-bold text-warning fs-3">EP</h4>
+                        <p class="text-muted mb-0 fw-semibold small">Electrical Power Engineering</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="{{ url_for('student_major_display', dept='MP') }}" class="text-decoration-none">
+                    <div class="card card-body text-center shadow border-0 py-4 py-md-5 rounded-4 dept-card">
+                        <h4 class="fw-bold text-danger fs-3">MP</h4>
+                        <p class="text-muted mb-0 fw-semibold small">Mechanical Engineering</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Change Password Modal -->
+    <div class="modal fade" id="studentPasswordModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Change Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="{{ url_for('student_change_password') }}" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Current Password</label>
+                            <div class="input-group">
+                                <input type="password" id="old_password" name="old_password" class="form-control shadow-none" required placeholder="Enter current password">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('old_password', 'toggleOldIcon')">
+                                    <i class="fas fa-eye" id="toggleOldIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">New Password</label>
+                            <div class="input-group">
+                                <input type="password"
+                                       id="new_password"
+                                       name="new_password"
+                                       class="form-control shadow-none"
+                                       pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':&quot;\\|,.<>\/?]).{6,}"
+                                       title="Must contain at least 6 characters, including 1 uppercase, 1 lowercase, 1 number, and 1 special character."
+                                       required
+                                       placeholder="Enter new password">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('new_password', 'toggleNewIcon')">
+                                    <i class="fas fa-eye" id="toggleNewIcon"></i>
+                                </button>
+                            </div>
+                            <small class="password-hint">
+                                Must contain at least 6 characters, 1 uppercase, 1 lowercase, 1 number, and 1 special character.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Update Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function togglePassword(inputId, iconId) {
+            const passwordInput = document.getElementById(inputId);
+            const toggleIcon = document.getElementById(iconId);
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                toggleIcon.classList.remove("fa-eye");
+                toggleIcon.classList.add("fa-eye-slash");
+            } else {
+                passwordInput.type = "password";
+                toggleIcon.classList.remove("fa-eye-slash");
+                toggleIcon.classList.add("fa-eye");
+            }
+        }
+    </script>
+</body>
+</html>

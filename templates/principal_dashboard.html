@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Principal Dashboard - ThesisHub</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-image:
+                linear-gradient(rgba(0, 30, 60, 0.65), rgba(0, 0, 0, 0.75)),
+                url("{{ url_for('static', filename='background 2.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-right: 1px solid #e0e0e0;
+            padding: 20px;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+        }
+        .sidebar .brand-title { font-size: 1.25rem; font-weight: 700; color: #0b2545; margin-bottom: 5px; }
+        .sidebar .brand-sub { font-size: 0.85rem; color: #6c757d; margin-bottom: 30px; }
+        .sidebar .nav-link {
+            color: #495057;
+            font-weight: 600;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+        .sidebar .nav-link:hover { background-color: #f1f4f9; color: #0d6efd; }
+        .sidebar .nav-link.active { background-color: #e7f1ff; color: #0d6efd; }
+        .sidebar .nav-link-logout { color: #dc3545; margin-top: 20px; }
+        .sidebar .nav-link-logout:hover { background-color: #f8d7da; color: #dc3545; }
+        .main-content { margin-left: 260px; padding: 30px; transition: all 0.3s ease; }
+        .header-title { color: #ffffff; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); }
+        .card-custom {
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            padding: 24px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(4px);
+        }
+        .table th { white-space: nowrap; }
+
+        /* Modal Overlay Z-index Fixing */
+        .modal-backdrop { z-index: 1040 !important; }
+        .modal { z-index: 1050 !important; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                padding: 15px;
+            }
+            .sidebar .brand-sub { margin-bottom: 15px; }
+            .main-content {
+                margin-left: 0;
+                padding: 20px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Section -->
+    <div class="sidebar d-flex flex-column justify-content-between">
+        <div>
+            <div class="brand-title">Principal Admin</div>
+            <div class="brand-sub">Welcome back, {{ session.get('admin_name', 'Principal') }}</div>
+            <ul class="nav nav-pills flex-column" id="principalTab" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active w-100" id="theses-tab" data-bs-toggle="tab" data-bs-target="#theses" type="button">
+                        <i class="bi bi-journal-album"></i> All Thesis Files
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link w-100" id="admins-tab" data-bs-toggle="tab" data-bs-target="#admins" type="button">
+                        <i class="bi bi-person-gear"></i> Department Admins
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link w-100" id="teachers-tab" data-bs-toggle="tab" data-bs-target="#teachers" type="button">
+                        <i class="bi bi-person-badge"></i> All Teachers
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link w-100" id="students-tab" data-bs-toggle="tab" data-bs-target="#students" type="button">
+                        <i class="bi bi-people"></i> All Students
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link w-100" id="password-tab" data-bs-toggle="tab" data-bs-target="#password" type="button">
+                        <i class="bi bi-key"></i> Change Password
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('admin_logout') }}" class="nav-link nav-link-logout">
+                        <i class="bi bi-box-arrow-left"></i> Log Out
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Main Content Section -->
+    <div class="main-content">
+        <div class="mb-4">
+            <h2 class="fw-bold mb-1 header-title fs-3 fs-md-2">ThesisHub Principal Dashboard</h2>
+            <p class="text-white-50 small">Manage system parameters, department admins, and repository files.</p>
+        </div>
+
+        <!-- Flash Messages Block -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="tab-content" id="principalTabContent">
+            <!-- 1. All Thesis Files -->
+            <div class="tab-pane fade show active" id="theses">
+                <div class="card-custom">
+                    <h4 class="fw-bold mb-1" style="color: #0b2545;">All Thesis Files</h4>
+                    <p class="text-muted mb-4">Central repository of theses uploaded across all departments.</p>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Department</th>
+                                    <th>Uploaded By</th>
+                                    <th>Uploaded Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for thesis in theses %}
+                                <tr>
+                                    <td class="fw-semibold">{{ thesis.title }}</td>
+                                    <td><span class="badge bg-info text-dark">{{ thesis.department }}</span></td>
+                                    <td>{{ thesis.uploaded_by or '-' }}</td>
+                                    <td>{{ thesis.created_at }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="text-center text-muted py-3">No thesis uploaded yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. All Admin Info -->
+            <div class="tab-pane fade" id="admins">
+                <div class="card-custom">
+                    <h4 class="fw-bold mb-1" style="color: #0b2545;">Department Admins</h4>
+                    <p class="text-muted mb-4">Overview of all active department admin accounts.</p>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Department</th>
+                                    <th>Email</th>
+                                    <th>Created At</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for admin in admins %}
+                                <tr>
+                                    <td class="fw-semibold">{{ admin.name }}</td>
+                                    <td><span class="badge bg-primary">{{ admin.department }}</span></td>
+                                    <td>{{ admin.email }}</td>
+                                    <td>{{ admin.created_at }}</td>
+                                    <td>
+                                        {% if admin.id != session.get('admin_id') %}
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAdminModal{{ admin.id }}">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </button>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Current User</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="5" class="text-center text-muted py-3">No department admins registered yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. All Teacher Info -->
+            <div class="tab-pane fade" id="teachers">
+                <div class="card-custom">
+                    <h4 class="fw-bold mb-1" style="color: #0b2545;">All Registered Teachers</h4>
+                    <p class="text-muted mb-4">Complete list of registered teaching faculty members.</p>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Position / Rank</th>
+                                    <th>Department</th>
+                                    <th>Email</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for teacher in teachers %}
+                                <tr>
+                                    <td class="fw-semibold">{{ teacher.name or teacher.username }}</td>
+                                    <td>{{ teacher.position or teacher.rank or '-' }}</td>
+                                    <td><span class="badge bg-secondary">{{ teacher.department }}</span></td>
+                                    <td>{{ teacher.email }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="text-center text-muted py-3">No teachers registered yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. All Student Info -->
+            <div class="tab-pane fade" id="students">
+                <div class="card-custom">
+                    <h4 class="fw-bold mb-1" style="color: #0b2545;">All Registered Students</h4>
+                    <p class="text-muted mb-4">Complete list of registered students across all departments.</p>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Roll No</th>
+                                    <th>Email</th>
+                                    <th>Registered Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td class="fw-semibold">{{ student.name }}</td>
+                                    <td>{{ student.roll_no }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>{{ student.created_at }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="text-center text-muted py-3">No students registered yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Change Password & Account Management -->
+            <div class="tab-pane fade" id="password">
+                <div class="card-custom col-12 col-md-8 col-lg-6 mb-4">
+                    <h4 class="fw-bold mb-1" style="color: #0b2545;">Change Password</h4>
+                    <p class="text-muted mb-4">Update your Principal account credentials.</p>
+                    <form action="{{ url_for('admin_change_password') }}" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Current Password</label>
+                            <input type="password" name="current_password" class="form-control" required placeholder="Enter current password">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">New Password</label>
+                            <input type="password" name="new_password" class="form-control" required placeholder="Enter new password">
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Confirm New Password</label>
+                            <input type="password" name="confirm_password" class="form-control" required placeholder="Confirm new password">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 fw-semibold py-2">Update Password</button>
+                    </form>
+                </div>
+
+                <!-- Principal Account Deletion Card -->
+                <div class="card-custom col-12 col-md-8 col-lg-6 border border-danger bg-light">
+                    <h4 class="fw-bold mb-1 text-danger">Delete Principal Account</h4>
+                    <p class="text-muted mb-3 small">Permanently delete this principal account so a new principal can register. This action cannot be undone.</p>
+                    <form action="{{ url_for('delete_principal') }}" method="POST" onsubmit="return confirm('Are you sure you want to delete your principal account? A new principal can then register.');">
+                        <button type="submit" class="btn btn-danger w-100 fw-semibold py-2">Delete Account & Allow New Principal</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modals -->
+    {% for admin in admins %}
+        {% if admin.id != session.get('admin_id') %}
+        <div class="modal fade" id="deleteAdminModal{{ admin.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title fw-bold">Confirm Delete</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-start">
+                        <p class="mb-0">
+                            Are you sure you want to delete Department Admin
+                            <strong>"{{ admin.name }}"</strong> ({{ admin.department }})?
+                        </p>
+                        <small class="text-danger mt-2 d-block">* This action cannot be undone.</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                        <form action="{{ url_for('delete_dept_admin', admin_id=admin.id) }}" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-danger rounded-pill fw-bold">Yes, Delete</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.location.hash === '#password') {
+                const passwordTabTrigger = document.querySelector('#password-tab');
+                if (passwordTabTrigger) {
+                    const tab = new bootstrap.Tab(passwordTabTrigger);
+                    tab.show();
+                }
+            }
+            const tabButtons = document.querySelectorAll('#principalTab button[data-bs-toggle="tab"]');
+            tabButtons.forEach(button => {
+                button.addEventListener('shown.bs.tab', function (event) {
+                    const targetId = event.target.getAttribute('data-bs-target');
+                    history.replaceState(null, null, targetId);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

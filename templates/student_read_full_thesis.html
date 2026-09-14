@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Read Thesis - {{ thesis.title }}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background-color: #343a40;
+            font-family: Arial, sans-serif;
+            color: white;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .header {
+            background: #1a1d20;
+            padding: 12px 15px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            position: fixed;
+            top: 0; width: 100%;
+            z-index: 100;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .viewer-container {
+            margin-top: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 10px;
+            height: calc(100vh - 50px);
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        .page-container {
+            position: relative;
+            margin-bottom: 20px;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            max-width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        canvas {
+            display: block;
+            max-width: 100%;
+            height: auto !important;
+        }
+        .spinner-overlay {
+            position: fixed;
+            top: 50px; left: 0; width: 100%; height: calc(100vh - 50px);
+            background: #2b3035;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            z-index: 200;
+        }
+        .loader {
+            border: 5px solid #444;
+            border-top: 5px solid #007bff;
+            border-radius: 50%;
+            width: 50px; height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+    <div class="header">{{ thesis.title }}</div>
+    <div id="loadingSpinner" class="spinner-overlay">
+        <div class="loader"></div>
+        <p style="margin-top: 15px; font-weight: bold;">Loading PDF, please wait...</p>
+    </div>
+    <div class="viewer-container" id="pdfContainer"></div>
+
+    <script>
+        const url = "{{ url_for('stream_thesis_pdf', thesis_id=thesis.id) }}";
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        let pdfDoc = null;
+        const container = document.getElementById('pdfContainer');
+        const spinner = document.getElementById('loadingSpinner');
+        const renderedPages = new Set();
+
+        pdfjsLib.getDocument(url).promise.then(pdf => {
+            pdfDoc = pdf;
+            spinner.style.display = 'none';
+
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const pageBox = document.createElement('div');
+                pageBox.className = 'page-container';
+                pageBox.id = `page-box-${pageNum}`;
+                pageBox.dataset.pageNum = pageNum;
+                container.appendChild(pageBox);
+            }
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const pageNum = parseInt(entry.target.dataset.pageNum);
+                        if (!renderedPages.has(pageNum)) {
+                            renderedPages.add(pageNum);
+                            renderPage(pageNum, entry.target);
+                        }
+                    }
+                });
+            }, { root: container, rootMargin: '200px 0px' });
+
+            document.querySelectorAll('.page-container').forEach(box => observer.observe(box));
+        });
+
+        function renderPage(num, containerBox) {
+            pdfDoc.getPage(num).then(page => {
+                const screenWidth = window.innerWidth > 0 ? window.innerWidth : screen.width;
+                let scale = 1.3;
+                if (screenWidth < 576) {
+                    scale = 0.6;
+                } else if (screenWidth < 768) {
+                    scale = 0.9;
+                }
+
+                const viewport = page.getViewport({ scale: scale });
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                containerBox.appendChild(canvas);
+                page.render({ canvasContext: ctx, viewport: viewport });
+            });
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 's' || e.key === 'p' || e.key === 'u')) {
+                e.preventDefault();
+                alert('Copying, Printing and Downloading are disabled for Security.');
+            }
+        });
+    </script>
+</body>
+</html>

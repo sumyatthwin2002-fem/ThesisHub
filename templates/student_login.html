@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Login - ThesisHub</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            background-image: linear-gradient(rgba(0, 30, 60, 0.65), rgba(0, 0, 0, 0.75)), url("{{ url_for('static', filename='background 7.jpg') }}");
+            background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.93); backdrop-filter: blur(10px);
+            padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 100%; max-width: 420px; border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .card h2 { margin-bottom: 20px; text-align: center; color: #0d3b66; font-weight: 700; }
+        .alert { padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; }
+        .alert-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #333333; font-weight: 600; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #cccccc; border-radius: 6px; font-size: 14px; background: rgba(255, 255, 255, 0.9); }
+        .form-group input:focus { outline: none; border-color: #17a2b8; box-shadow: 0 0 5px rgba(23, 162, 184, 0.3); }
+        .btn { width: 100%; padding: 12px; background-color: #17a2b8; border: none; border-radius: 6px; color: #ffffff; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s ease-in-out; }
+        .btn:hover { background-color: #138496; }
+        .footer-text { margin-top: 20px; text-align: center; font-size: 14px; color: #555555; }
+        .footer-text a { color: #17a2b8; text-decoration: none; font-weight: 600; }
+        .footer-text a:hover { text-decoration: underline; }
+
+        @media(max-width: 480px) {
+            .card { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Student Login</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        <form action="{{ url_for('student_login') }}" method="POST">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" required placeholder="Enter your full name">
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Enter password">
+            </div>
+            <button type="submit" class="btn">Login</button>
+        </form>
+        <div class="footer-text">
+            Don't have an account? <a href="{{ url_for('student_register') }}">Register here</a>
+        </div>
+    </div>
+</body>
+</html>

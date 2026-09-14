@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ department }} Department - Thesis List</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-image:
+                linear-gradient(rgba(0, 30, 60, 0.65), rgba(0, 0, 0, 0.75)),
+                url("{{ url_for('static', filename='background 6.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .page-title { color: #ffffff; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); }
+        .category-btn-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: none;
+            border-radius: 12px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #0d3b66;
+            cursor: pointer;
+            transition: all 0.25s ease-in-out;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 90px;
+        }
+        .category-btn-card:hover, .category-btn-card.active {
+            transform: translateY(-4px);
+            background: #ffffff;
+            color: #0d6efd;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border: 2px solid #0d6efd;
+        }
+        .thesis-display-section {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .thesis-card-item {
+            background: #f8f9fa;
+            border-left: 5px solid #0d6efd;
+            border-radius: 6px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+            transition: background 0.2s ease;
+        }
+        .thesis-card-item:hover { background: #eef5ff; }
+        .search-box { background: rgba(255, 255, 255, 0.95); border: none; }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-light btn-sm fw-semibold mb-3 shadow-sm">← Back to Dashboard</a>
+
+        <!-- Search Box -->
+        <div class="row justify-content-center mb-4">
+            <div class="col-12 col-md-8">
+                <form action="{{ url_for('teacher_major_display', dept=department) }}" method="GET" class="d-flex flex-column flex-sm-row gap-2">
+                    <input type="text" name="q" class="form-control form-control-lg search-box shadow-sm" placeholder="Search thesis title, author..." value="{{ search_query if search_query else '' }}">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg flex-fill px-4 shadow-sm fw-bold">Search</button>
+                        {% if search_query %}
+                            <a href="{{ url_for('teacher_major_display', dept=department) }}" class="btn btn-secondary btn-lg px-3 shadow-sm">Clear</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <h3 class="fw-bold mb-4 page-title text-center fs-3 fs-md-2">Department of {{ department }} Theses</h3>
+
+        {% if search_query %}
+            <div class="thesis-display-section">
+                <h4 class="fw-bold text-dark mb-4 border-bottom pb-2 fs-5 fs-md-4">Search Results for "{{ search_query }}"</h4>
+                {% set found_any = false %}
+                {% for category, items in categorized_theses.items() %}
+                    {% for item in items %}
+                        {% set found_any = true %}
+                        <div class="thesis-card-item">
+                            <h5 class="fw-bold text-primary mb-2 fs-5">{{ item.title }}</h5>
+                            <p class="text-muted small mb-3">
+                                <strong>Author:</strong> {{ item.author or 'N/A' }} |
+                                <strong>Year:</strong> {{ item.pub_year or 'N/A' }} |
+                                <strong>Category:</strong> {{ category }}
+                            </p>
+                            <div>
+                                {% if item.file_path %}
+                                    <a href="{{ url_for('teacher_read_full_thesis', thesis_id=item.id) }}" class="btn btn-primary btn-sm fw-bold px-3">
+                                        <i class="bi bi-book-half me-1"></i> Read Full Thesis
+                                    </a>
+                                {% else %}
+                                    <button class="btn btn-secondary btn-sm fw-bold px-3" disabled>No File Attached</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+                {% if not found_any %}
+                    <p class="text-muted text-center py-3">No theses found matching your search.</p>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="row g-3 g-md-4">
+                {% for category in categorized_theses.keys() %}
+                    <div class="col-12 col-sm-6">
+                        <div class="category-btn-card" onclick="showCategory('cat-{{ loop.index }}', '{{ category }}', this)">
+                            {{ category }}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="col-12">
+                        <div class="alert alert-info text-center shadow-sm border-0 rounded-4">No categories or theses uploaded yet.</div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div id="thesisDisplayContainer" class="thesis-display-section" style="display: none;">
+                <h4 class="fw-bold text-dark mb-4 border-bottom pb-2 fs-5 fs-md-4" id="selectedCategoryTitle">Selected Category: </h4>
+                {% for category, items in categorized_theses.items() %}
+                    <div id="cat-{{ loop.index }}" class="category-thesis-group" style="display: none;">
+                        {% for item in items %}
+                            <div class="thesis-card-item">
+                                <h5 class="fw-bold text-primary mb-2 fs-5">{{ item.title }}</h5>
+                                <p class="text-muted small mb-3">
+                                    <strong>Author:</strong> {{ item.author or 'N/A' }} |
+                                    <strong>Year:</strong> {{ item.pub_year or 'N/A' }} |
+                                    <strong>Category:</strong> {{ category }}
+                                </p>
+                                <div>
+                                    {% if item.file_path %}
+                                        <a href="{{ url_for('teacher_read_full_thesis', thesis_id=item.id) }}" class="btn btn-primary btn-sm fw-bold px-3">
+                                            <i class="bi bi-book-half me-1"></i> Read Full Thesis
+                                        </a>
+                                    {% else %}
+                                        <button class="btn btn-secondary btn-sm fw-bold px-3" disabled>No File Attached</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No theses available in this category.</p>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function showCategory(categoryId, categoryName, element) {
+            document.querySelectorAll('.category-btn-card').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            const container = document.getElementById('thesisDisplayContainer');
+            container.style.display = 'block';
+            document.getElementById('selectedCategoryTitle').innerText = 'Selected Category: ' + categoryName;
+            document.querySelectorAll('.category-thesis-group').forEach(group => group.style.display = 'none');
+            document.getElementById(categoryId).style.display = 'block';
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

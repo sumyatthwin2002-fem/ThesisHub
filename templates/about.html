@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - ThesisHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-image:
+                linear-gradient(
+                    rgba(0, 30, 60, 0.75),
+                    rgba(0, 0, 0, 0.85)
+                ),
+                url("{{ url_for('static', filename='background 6.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            color: #ffffff;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            border: none;
+            color: #212529;
+        }
+        .section-title {
+            color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-transparent pt-3">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-4" href="#">
+                <i class="bi bi-mortarboard-fill text-warning me-2"></i>ThesisHub
+            </a>
+            <div class="ms-auto">
+                <a href="{{ url_for('about') }}" class="btn btn-outline-light me-2 active">About Us</a>
+                <a href="{{ url_for('contact') }}" class="btn btn-outline-light">Contact Us</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-10">
+                <h2 class="display-5 fw-bold text-center mb-4 section-title fs-3 fs-md-2">About ThesisHub</h2>
+                <div class="card glass-card rounded-4 p-4 p-md-5 shadow-lg mb-4">
+                    <h4 class="fw-bold text-primary mb-3"><i class="bi bi-bullseye me-2"></i>Our Mission</h4>
+                    <p class="lead text-muted fs-6 fs-md-5">
+                        ThesisHub is a centralized academic repository platform designed to connect students and teachers across various engineering departments. Our goal is to streamline access to previous thesis papers, research logs, and department logs to empower academic excellence.
+                    </p>
+                    <hr class="my-4">
+                    <h4 class="fw-bold text-primary mb-3"><i class="bi bi-gear-wide-connected me-2"></i>Supported Departments</h4>
+                    <div class="row g-3 text-center mt-1">
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 border rounded-3 bg-light fw-bold text-dark">Civil Engineering</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 border rounded-3 bg-light fw-bold text-dark">EC Engineering</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 border rounded-3 bg-light fw-bold text-dark">EP Engineering</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 border rounded-3 bg-light fw-bold text-dark">MP Engineering</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
