@@ -23,6 +23,7 @@ app = Flask(__name__)
 # Security Hardening for Flask Session
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "default_secret_key_change_in_production")
 app.config['SESSION_COOKIE_HTTPONLY'] = True
+
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = 1800
 
@@ -80,6 +81,7 @@ app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
 mail = Mail(app)
 db = SQLAlchemy(app)
 
+
 # Security Decorators
 def admin_required(f):
     @wraps(f)
@@ -88,7 +90,9 @@ def admin_required(f):
             flash("Unauthorized access! Please login as an admin.", "error")
             return redirect(url_for("admin_login"))
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 def teacher_required(f):
     @wraps(f)
@@ -97,7 +101,9 @@ def teacher_required(f):
             flash("Unauthorized access! Please login as a teacher.", "error")
             return redirect(url_for("teacher_login"))
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 def student_required(f):
     @wraps(f)
@@ -106,7 +112,9 @@ def student_required(f):
             flash("Unauthorized access! Please login as a student.", "error")
             return redirect(url_for("student_login"))
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 # ORM Models
 class Admin(db.Model):
@@ -118,6 +126,7 @@ class Admin(db.Model):
     password = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
+
 class Teacher(db.Model):
     __tablename__ = 'teachers'
     id = db.Column(db.Integer, primary_key=True)
@@ -126,6 +135,7 @@ class Teacher(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
 
 class Student(db.Model):
     __tablename__ = 'students'
@@ -138,6 +148,7 @@ class Student(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     search_logs = db.relationship('SearchHistory', backref='student', lazy=True)
 
+
 class Category(db.Model):
     __tablename__ = 'categories'
     id = db.Column(db.Integer, primary_key=True)
@@ -146,6 +157,7 @@ class Category(db.Model):
     __table_args__ = (
         db.UniqueConstraint('department', 'category_name', name='unique_dept_category'),
     )
+
 
 class ThesisFile(db.Model):
     __tablename__ = 'thesis_files'
@@ -160,6 +172,7 @@ class ThesisFile(db.Model):
     abstract = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
+
 class SearchHistory(db.Model):
     __tablename__ = 'search_history'
     id = db.Column(db.Integer, primary_key=True)
@@ -170,6 +183,7 @@ class SearchHistory(db.Model):
     search_keyword = db.Column(db.String(255), nullable=False)
     searched_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
+
 class Feedback(db.Model):
     __tablename__ = 'feedbacks'
     id = db.Column(db.Integer, primary_key=True)
@@ -178,6 +192,7 @@ class Feedback(db.Model):
     rating = db.Column(db.Integer, nullable=False)
     comment = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
 
 # Helper Functions
 def allowed_file(file_input):
@@ -197,6 +212,7 @@ def allowed_file(file_input):
         return header == b'%PDF'
     return True
 
+
 # Updated send_email with reply_to support
 def send_email(to_email, subject, body, reply_to=None):
     try:
@@ -214,6 +230,7 @@ def send_email(to_email, subject, body, reply_to=None):
         print(f"Email error: {e}")
         return False
 
+
 def validate_password(password):
     if len(password) < 6:
         return False, "Password must be at least 6 characters long."
@@ -227,15 +244,18 @@ def validate_password(password):
         return False, "Password must contain at least one special character."
     return True, ""
 
+
 def redirect_admin_dashboard():
     if session.get("admin_dept", "").upper() == "PRINCIPAL":
         return redirect(url_for("principal_dashboard"))
     return redirect(url_for("dept_admin_dashboard"))
 
+
 # General Routes
 @app.route('/')
 def home():
     return render_template('welcome.html')
+
 
 @app.route('/about')
 def about():
@@ -246,7 +266,7 @@ def about():
 def feedback():
     if 'student_id' not in session:
         flash("You are not registered yet, so you cannot use this service. Please register first.", "error")
-        return redirect(url_for('student_register')) # သင့် project ရှိ student register သို့မဟုတ် login route အမည်ဖြင့် ပြောင်းလဲနိုင်ပါသည်
+        return redirect(url_for('student_register'))
 
     if request.method == 'POST':
         user_name = session.get('student_name', 'Student').strip()
@@ -295,6 +315,10 @@ def feedback():
     return render_template('feedback.html', feedbacks=all_feedbacks)
 
 
+    all_feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).all()
+    return render_template('feedback.html', feedbacks=all_feedbacks)
+
+
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():
     if 'student_id' not in session:
@@ -312,10 +336,7 @@ def contact():
             flash("Please fill in all required fields including your email.", "error")
             return redirect(url_for('contact'))
 
-        # Database မှ Department နှင့် ကိုက်ညီသော Admin ကို ရှာမည်
         target_admin = Admin.query.filter(db.func.upper(db.func.trim(Admin.department)) == department).first()
-
-        # Terminal တွင် Admin တွေ့မတွေ့ စစ်ဆေးရန် (Debug)
         print(
             f"--- DEBUG --- Selected Dept: {department}, Found Admin: {target_admin}, Admin Email: {target_admin.email if (target_admin and target_admin.email) else 'None'}")
 
@@ -344,10 +365,12 @@ def contact():
 
     return render_template('contact.html')
 
+
 @app.route("/thesis/abstract/<int:thesis_id>")
 def thesis_abstract(thesis_id):
     thesis = ThesisFile.query.get_or_404(thesis_id)
     return render_template("thesis_abstract.html", thesis=thesis)
+
 
 @app.route("/thesis/download_abstract/<int:thesis_id>")
 def download_abstract_pdf(thesis_id):
@@ -390,6 +413,7 @@ def download_abstract_pdf(thesis_id):
         mimetype="application/pdf"
     )
 
+
 @app.route("/thesis/stream/<int:thesis_id>")
 def stream_thesis_pdf(thesis_id):
     if "teacher_id" not in session and "student_id" not in session:
@@ -413,6 +437,7 @@ def stream_thesis_pdf(thesis_id):
         if session.get("role") == "teacher":
             return redirect(url_for("teacher_dashboard"))
         return redirect(url_for("student_main"))
+
 
 # Admin Routes
 @app.route("/admin/register", methods=["GET", "POST"])
@@ -462,6 +487,7 @@ def admin_register():
             flash("An error occurred during registration.", "error")
     return render_template("admin_register.html")
 
+
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
     if request.method == "POST":
@@ -478,7 +504,6 @@ def admin_login():
             flash("Invalid Admin Name!", "error")
             return redirect(url_for("admin_login"))
 
-            # Password မကိုက်ညီပါက စစ်ဆေးရန်
         if not check_password_hash(admin.password, password):
             flash("Invalid Password!", "error")
             return redirect(url_for("admin_login"))
@@ -506,6 +531,7 @@ def admin_login():
         else:
             flash("Invalid Admin Name, Email, or Password!", "error")
     return render_template("admin_login.html")
+
 
 @app.route("/admin/verify-otp", methods=["GET", "POST"])
 def admin_verify_otp():
@@ -539,10 +565,12 @@ def admin_verify_otp():
             flash("Invalid verification code! Please try again.", "error")
     return render_template("admin_verify_otp.html")
 
+
 @app.route("/admin/dashboard")
 @admin_required
 def admin_dashboard():
     return redirect_admin_dashboard()
+
 
 @app.route("/admin/principal/dashboard")
 @admin_required
@@ -556,7 +584,9 @@ def principal_dashboard():
     all_teachers = Teacher.query.order_by(Teacher.id.desc()).all()
     all_students = Student.query.order_by(Student.id.desc()).all()
 
-    return render_template("principal_dashboard.html", theses=all_theses, admins=all_admins, teachers=all_teachers, students=all_students)
+    return render_template("principal_dashboard.html", theses=all_theses, admins=all_admins, teachers=all_teachers,
+                           students=all_students)
+
 
 @app.route("/admin/principal/dept-admin/delete/<int:admin_id>", methods=["POST"])
 @admin_required
@@ -576,7 +606,8 @@ def delete_dept_admin(admin_id):
         try:
             db.session.delete(admin_to_delete)
             db.session.commit()
-            flash(f"Department Admin '{admin_to_delete.name}' ({admin_to_delete.department}) deleted successfully!", "success")
+            flash(f"Department Admin '{admin_to_delete.name}' ({admin_to_delete.department}) deleted successfully!",
+                  "success")
         except Exception as e:
             db.session.rollback()
             flash(f"Error deleting admin: {str(e)}", "error")
@@ -597,7 +628,6 @@ def dept_admin_dashboard():
         dept_students = Student.query.order_by(Student.id.desc()).all()
         dept_teachers = Teacher.query.order_by(Teacher.id.desc()).all()
         categories = Category.query.all()
-        # Principal က အားလုံးရဲ့ search history ကို ကြည့်နိုင်သည်
         search_logs = SearchHistory.query.order_by(SearchHistory.id.desc()).all()
     else:
         dept_theses = ThesisFile.query.filter(
@@ -612,8 +642,6 @@ def dept_admin_dashboard():
         categories = Category.query.filter(
             db.func.lower(db.func.trim(Category.department)) == admin_dept.lower()
         ).all()
-
-        # [ပြင်ဆင်ချက်] Department Admin သည် မိမိမေဂျာမှ ကျောင်းသားများ၏ search history ကိုသာ ကြည့်ရှုရန် စစ်ထုတ်ခြင်း
         search_logs = SearchHistory.query.filter(
             db.func.lower(db.func.trim(SearchHistory.department)) == admin_dept.lower()
         ).order_by(SearchHistory.id.desc()).all()
@@ -629,6 +657,7 @@ def dept_admin_dashboard():
         department=admin_dept,
         categories=categories
     )
+
 
 @app.route("/admin/thesis/upload", methods=["POST"])
 @admin_required
@@ -677,6 +706,7 @@ def upload_thesis():
         flash("Invalid file format or corrupted file! Please upload a valid PDF.", "error")
     return redirect(url_for('dept_admin_dashboard'))
 
+
 @app.route("/admin/thesis/delete/<int:thesis_id>", methods=["POST"])
 @admin_required
 def delete_thesis(thesis_id):
@@ -701,6 +731,7 @@ def delete_thesis(thesis_id):
         flash("Thesis file not found!", "error")
     return redirect_admin_dashboard()
 
+
 @app.route("/admin/teacher/delete/<int:teacher_id>", methods=["POST"])
 @admin_required
 def delete_teacher(teacher_id):
@@ -716,6 +747,7 @@ def delete_teacher(teacher_id):
     else:
         flash("Teacher not found!", "danger")
     return redirect_admin_dashboard()
+
 
 @app.route("/admin/student/delete/<int:student_id>", methods=["POST"])
 @admin_required
@@ -755,10 +787,7 @@ def admin_change_password():
         admin.password = generate_password_hash(new_password)
         db.session.commit()
 
-        # Message ကို Logout ခိုင်းသည့် စာသားမှ အောင်မြင်ကြောင်း စာသားသို့ ပြောင်းပါ
         flash("Password updated successfully!", "success")
-
-        # admin_logout သို့ မလွှတ်တော့ဘဲ Dashboard သို့ ပြန်ညွှန်းပါ
         return redirect_admin_dashboard()
     else:
         flash("Incorrect current password!", "error")
@@ -768,7 +797,6 @@ def admin_change_password():
 
 @app.route("/principal/delete_account", methods=["POST"])
 def delete_principal():
-    # Principal ဟုတ်မဟုတ် စစ်ဆေးခြင်း
     if session.get("admin_dept") != "PRINCIPAL":
         flash("Unauthorized action!", "error")
         return redirect(url_for("admin_login"))
@@ -779,17 +807,17 @@ def delete_principal():
         if principal:
             db.session.delete(principal)
             db.session.commit()
-
-    # Session များကို ရှင်းလင်းခြင်း
     session.clear()
     flash("Principal account deleted successfully. A new principal can now register.", "success")
     return redirect(url_for("admin_register"))
+
 
 @app.route("/admin/logout")
 def admin_logout():
     session.clear()
     flash("Admin logged out successfully!", "info")
     return redirect(url_for("home"))
+
 
 # Teacher Routes
 @app.route("/teacher/register", methods=["GET", "POST"])
@@ -839,6 +867,7 @@ def teacher_register():
             flash("An error occurred during registration.", "error")
     return render_template("teacher_register.html")
 
+
 @app.route("/teacher/login", methods=["GET", "POST"])
 def teacher_login():
     if request.method == "POST":
@@ -849,13 +878,12 @@ def teacher_login():
 
         teacher = Teacher.query.filter_by(email=email, name=name).first()
         if not teacher:
-            flash("Your account is not registered yet. Please register first.", "error")  # ပြင်ဆင်ထားသည့် စာသား
+            flash("Your account is not registered yet. Please register first.", "error")  #
             return redirect(url_for("teacher_login"))
         if teacher.name.strip() != name:
             flash("Invalid Teacher Name!", "error")
             return redirect(url_for("teacher_login"))
 
-            # Password မကိုက်ညီပါက စစ်ဆေးရန်
         if not check_password_hash(teacher.password, password):
             flash("Invalid Password!", "error")
             return redirect(url_for("teacher_login"))
@@ -883,6 +911,7 @@ def teacher_login():
         else:
             flash("Invalid Name, Email, or Password!", "error")
     return render_template("teacher_login.html")
+
 
 @app.route("/teacher/verify-otp", methods=["GET", "POST"])
 def teacher_verify_otp():
@@ -932,7 +961,6 @@ def teacher_dashboard():
         db.func.lower(db.func.trim(Student.department)) == teacher_dept.lower()
     ).order_by(Student.roll_no.asc()).all()
 
-    # [ပြင်ဆင်ချက်] Teacher သည် မိမိမေဂျာမှ ကျောင်းသားများ၏ search history ကိုသာ ကြည့်ရှုရန် စစ်ထုတ်ခြင်း
     search_logs = SearchHistory.query.filter(
         db.func.lower(db.func.trim(SearchHistory.department)) == teacher_dept.lower()
     ).order_by(SearchHistory.id.desc()).all()
@@ -952,13 +980,11 @@ def teacher_major_display(dept):
     search_query = request.args.get("q", "").strip()
     dept_upper = dept.upper()
 
-    # 1. Database ထဲက သက်ဆိုင်ရာ မေဂျာအလိုက် Categories များကို အရင်ဆွဲထုတ်ခြင်း
     db_categories = Category.query.filter(
         db.func.lower(db.func.trim(Category.department)) == dept.lower()
     ).all()
     categorized_theses = {cat.category_name: [] for cat in db_categories}
 
-    # 2. သက်ဆိုင်ရာ မေဂျာ၏ Thesis များကို Query တည်ဆောက်ခြင်း (Publication Year ပါ ရှာနိုင်ရန် cast ထည့်သွင်းထားပြီး)
     query = ThesisFile.query.filter(
         db.func.lower(db.func.trim(ThesisFile.department)) == dept.lower()
     )
@@ -987,11 +1013,14 @@ def teacher_major_display(dept):
         theses=theses,
         search_query=search_query
     )
+
+
 @app.route("/teacher/read/<int:thesis_id>")
 @teacher_required
 def teacher_read_full_thesis(thesis_id):
     thesis = ThesisFile.query.get_or_404(thesis_id)
     return render_template("teacher_read_full_thesis.html", thesis=thesis)
+
 
 @app.route("/teacher/change-password", methods=["POST"])
 @teacher_required
@@ -1014,11 +1043,13 @@ def teacher_change_password():
         flash("Incorrect current password!", "error")
     return redirect(url_for("teacher_dashboard"))
 
+
 @app.route("/teacher/logout")
 def teacher_logout():
     session.clear()
     flash("Logged out successfully!", "info")
     return redirect(url_for("home"))
+
 
 # Student Routes
 @app.route("/student/register", methods=["GET", "POST"])
@@ -1031,24 +1062,20 @@ def student_register():
         password = request.form.get("password")
         confirm_password = request.form.get("confirm_password")
 
-        # ၁။ Confirm Password တိုက်ဆိုင်မှု စစ်ဆေးခြင်း
         if password != confirm_password:
             flash("Passwords do not match!", "error")
             return redirect(url_for("student_register"))
 
-        # ၂။ Password သတ်မှတ်ချက် စစ်ဆေးခြင်း
         is_valid, msg = validate_password(password)
         if not is_valid:
             flash(msg, "error")
             return redirect(url_for("student_register"))
 
-        # ၃။ Roll Number Format စစ်ဆေးခြင်း
         roll_pattern = r'^[I|V|X|i|v|x]+[\s-]*[A-Za-z]+-\d+\(\d{4}-\d{2}\)$'
         if not re.match(roll_pattern, roll_no):
             flash("Invalid Roll Number! Format must be like IEC-1(2025-26) or VI-EC-1(2020-21).", "error")
             return redirect(url_for("student_register"))
 
-        # ၄။ Email အဟောင်း ရှိမရှိ စစ်ဆေးခြင်း
         if Student.query.filter_by(email=email).first():
             flash("This email address is already registered!", "error")
             return redirect(url_for("student_register"))
@@ -1065,22 +1092,21 @@ def student_register():
             db.session.add(new_student)
             db.session.commit()
 
-            # ===== ဤနေရာတွင် Session ကိုပါ တစ်ခါတည်း သိမ်းပေးပါ =====
             session["student_id"] = new_student.id
             session["student_name"] = new_student.name
             session["student_roll"] = new_student.roll_no
             session["student_dept"] = new_student.department
             session["role"] = "student"
-            # ==================================================
 
             flash("Student registration successful!", "success")
-            return redirect(url_for("student_main")) # Register ပြီးတာနဲ့ Main page ဆီ တန်းသွားမည်
+            return redirect(url_for("student_main"))
         except Exception as e:
             db.session.rollback()
             flash("An error occurred during registration.", "error")
             return redirect(url_for("student_register"))
 
     return render_template("student_register.html")
+
 
 @app.route("/student/login", methods=["GET", "POST"])
 def student_login():
@@ -1090,9 +1116,8 @@ def student_login():
 
         student = Student.query.filter_by(email=email).first()
         if not student:
-            flash("Your account is not registered yet. Please register first.", "error")  # ပြင်ဆင်ထားသည့် စာသား
+            flash("Your account is not registered yet. Please register first.", "error")  #
             return redirect(url_for("student_login"))
-           # Password မကိုက်ညီပါက စစ်ဆေးရန်
         if not check_password_hash(student.password, password):
             flash("Invalid Password!", "error")
             return redirect(url_for("student_login"))
@@ -1108,6 +1133,7 @@ def student_login():
             flash("Invalid Email or Password!", "error")
             return redirect(url_for("student_login"))
     return render_template("student_login.html")
+
 
 @app.route("/student/main")
 @student_required
@@ -1133,10 +1159,10 @@ def student_main():
         theses = ThesisFile.query.filter(
             db.func.lower(db.func.trim(ThesisFile.department)) == student_dept.lower(),
             (
-                (ThesisFile.title.ilike(search_pattern)) |
-                (ThesisFile.category.ilike(search_pattern)) |
-                (ThesisFile.author.ilike(search_pattern)) |
-                (db.cast(ThesisFile.pub_year, db.String).ilike(search_pattern))
+                    (ThesisFile.title.ilike(search_pattern)) |
+                    (ThesisFile.category.ilike(search_pattern)) |
+                    (ThesisFile.author.ilike(search_pattern)) |
+                    (db.cast(ThesisFile.pub_year, db.String).ilike(search_pattern))
             )
         ).order_by(ThesisFile.created_at.desc()).all()
     else:
@@ -1145,6 +1171,7 @@ def student_main():
         ).order_by(ThesisFile.created_at.desc()).all()
 
     return render_template("student_main.html", theses=theses, search_query=search_query)
+
 
 @app.route("/student/major/<dept>")
 @student_required
@@ -1201,6 +1228,7 @@ def student_major_display(dept):
         search_query=search_query
     )
 
+
 @app.route("/student/read/<int:thesis_id>")
 @student_required
 def student_read_full_thesis(thesis_id):
@@ -1224,7 +1252,6 @@ def student_change_password():
         student.password = generate_password_hash(new_password)
         db.session.commit()
 
-        # Session မပျောက်စေရန် သေချာအောင် explicit မာကင်ပေးပါ
         session["student_id"] = student.id
         session.modified = True
 
@@ -1234,11 +1261,13 @@ def student_change_password():
         flash("Incorrect current password!", "error")
         return redirect(url_for("student_main"))
 
+
 @app.route("/student/logout")
 def student_logout():
     session.clear()
     flash("Logged out successfully!", "info")
     return redirect(url_for("home"))
+
 
 def init_db():
     try:
@@ -1278,6 +1307,7 @@ def init_db():
     except Exception as e:
         db.session.rollback()
         print(f"Database Initialization Error: {e}")
+
 
 if __name__ == "__main__":
     with app.app_context():
